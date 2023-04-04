@@ -6,9 +6,17 @@
 #Arg5 = minNonOverlap between two split reads "10"
 #Arg6 = Sample name "1E"
 #Arg7 = genome build "hg38"
+#Arg8 = path to temporary directory to use with samtools sort
 
-#Usage: bash "Number of processors" "/path-of-whole-genome-file/hg38.fa" "fastq file 1" "fastq file 2" "minNonOverlap between two split reads" "Sample name" "genome build"
-#bash circle_finder-pipeline-bwa-mem-samblaster.sh 16 hg38.fa 1E_S1_L1-L4_R1_001.fastq.75bp-R1.fastq 1E_S1_L1-L4_R2_001.fastq.75bp-R2.fastq 10 1E hg38
+#Usage: bash "Number of processors" "/path-of-whole-genome-file/hg38.fa" "fastq file 1" "fastq file 2" "minNonOverlap between two split reads" "Sample name" "genome build" "samtools sort tmp dir"
+#bash circle_finder-pipeline-bwa-mem-samblaster.sh 16 hg38.fa 1E_S1_L1-L4_R1_001.fastq.75bp-R1.fastq 1E_S1_L1-L4_R2_001.fastq.75bp-R2.fastq 10 1E hg38 /local/$USER
+
+if [[ -z "$8" || ! -d "$8" ]]; then
+    echo "Please supply an existing directory as the eighth argument, for temporary files."
+    exit 1;
+fi
+
+
 
 #Step 1: Mapping.
 
@@ -17,7 +25,7 @@ bwa mem -t $1 $2 $3 $4 | samblaster -e --minNonOverlap $5 -d $6-$7\.disc.sam -s 
 #Step 2: Converting (sam2bam), sorting and indexing mapped reads. Output of this step is input in step 3
 
 samtools view -@ $1 -bS $6-$7\.sam -o $6-$7\.bam
-samtools sort -@ $1 -O bam -o $6-$7\.sorted.bam $6-$7\.bam
+samtools sort -@ $1 -T "$8" -O bam -o $6-$7\.sorted.bam $6-$7\.bam
 samtools index $6-$7\.sorted.bam
 
 samtools view -@ $1 -bS $6-$7\.disc.sam > $6-$7\.disc.bam
